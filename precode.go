@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -49,10 +50,14 @@ func getTasks(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	_, err = w.Write(resp)
+	if err != nil {
+		log.Println("Возникла ошибка при формировании ответа:", err)
+		return
+	}
 }
 
-func sendTask(w http.ResponseWriter, r *http.Request) {
+func createTask(w http.ResponseWriter, r *http.Request) {
 	var task Task
 	var buf bytes.Buffer
 
@@ -64,6 +69,11 @@ func sendTask(w http.ResponseWriter, r *http.Request) {
 
 	if err = json.Unmarshal(buf.Bytes(), &task); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if _, ok := tasks[task.ID]; ok {
+		http.Error(w, "Задача с таким ID уже существует", http.StatusBadRequest)
 		return
 	}
 
@@ -90,6 +100,11 @@ func getTaskByID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
+	_, err = w.Write(resp)
+	if err != nil {
+		log.Println("Возникла ошибка при формировании ответа:", err)
+		return
+	}
 }
 
 func deleteTask(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +127,7 @@ func main() {
 	// здесь регистрируйте ваши обработчики
 	r.Get("/tasks", getTasks)
 
-	r.Post("/tasks", sendTask)
+	r.Post("/tasks", createTask)
 
 	r.Get("/tasks/{id}", getTaskByID)
 
